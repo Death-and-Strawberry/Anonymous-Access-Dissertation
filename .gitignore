@@ -9,3 +9,6 @@ zk/**/*.wasm
 zk/**/*.wtns
 zk/**/*.sym
 zk/**/*.json
+
+#Ignore out folder
+out/
