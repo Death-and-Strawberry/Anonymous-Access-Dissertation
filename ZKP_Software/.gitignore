@@ -17,3 +17,6 @@ out/
 #Ignore pycache
 __pycache__/
 *.py[cod]
+
+# macOS system files
+.DS_Store
