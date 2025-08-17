@@ -20,7 +20,7 @@ trusted_setup()
 bbs_proof, revealed_attrs_bytes, bbs_pub, nonce, merkle_proof, serial, issuer_id, leaf_index = create_bbs_selective_proof(
     signature=signature,
     keypair=keypair,
-    attrs=attributes,
+    attributes=attributes,
     revealed_fields=revealed_fields,
     tree=tree,
     serial=serial,
