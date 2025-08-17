@@ -1,0 +1,19 @@
+# Ignore virtual environment
+.venv/
+
+# Ignore trusted setup and circuit output inside zk/
+zk/**/*.ptau
+zk/**/*.zkey
+zk/**/*.r1cs
+zk/**/*.wasm
+zk/**/*.wtns
+zk/**/*.sym
+zk/**/*.json
+
+#Ignore out folder
+out/
+
+
+#Ignore pycache
+__pycache__/
+*.py[cod]
