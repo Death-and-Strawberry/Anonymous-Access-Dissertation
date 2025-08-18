@@ -5,3 +5,4 @@ Pygments==2.19.2
 pytest==8.4.1
 setuptools==80.9.0
 ursa_bbs_signatures==1.0.2
+circomlibpy

@@ -53,7 +53,7 @@ def bls_to_bbs_key_via_ffi(bls_pub_bytes: bytes, message_count: int) -> bytes:
     return bytes(bytearray(out_buf.data[:out_buf.len]))
 
 
-def create_bbs_selective_proof(signature, keypair, attributess: dict, revealed_fields: list, tree: MerkleTree, serial: int, issuer_id: int, all_keys: list):
+def create_bbs_selective_proof(signature, keypair, attributes: dict, revealed_fields: list, tree: MerkleTree, serial: int, issuer_id: int, all_keys: list):
     """
     A function to create a proof of only selected values (selective disclosure) using the BBS+ library 
     that has been imported from ffi-bbs-signatures.
@@ -75,7 +75,7 @@ def create_bbs_selective_proof(signature, keypair, attributess: dict, revealed_f
     # Build ProofMessage list in same message order as signing
     messages = []
     for k in all_keys:
-        raw = str(attributess[k]).encode()
+        raw = str(attributes[k]).encode()
         mtype = ProofMessageType.Revealed if k in revealed_fields else ProofMessageType.HiddenProofSpecificBlinding
         messages.append(ProofMessage(raw, mtype))
 
@@ -104,7 +104,7 @@ def create_bbs_selective_proof(signature, keypair, attributess: dict, revealed_f
         if k == "commitment":
             revealed_attrs_bytes["commitment"] = commitment_bytes
         else:
-            revealed_attrs_bytes[k] = str(attributess[k]).encode()
+            revealed_attrs_bytes[k] = str(attributes[k]).encode()
 
     # Find commitment leaf index in tree and produce merkle proof
     try:

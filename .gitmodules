@@ -1,0 +1,6 @@
+[submodule "ZKP_Software/deps/bbs-signatures"]
+	path = ZKP_Software/deps/bbs-signatures
+	url = https://github.com/mattrglobal/bbs-signatures.git
+[submodule "ZKP_Software/ffi-bbs-signatures"]
+	path = ZKP_Software/ffi-bbs-signatures
+	url = https://github.com/mattrglobal/ffi-bbs-signatures.git

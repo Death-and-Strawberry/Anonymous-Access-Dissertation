@@ -3,7 +3,8 @@ import os
 
 #path to compiled shared library
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
-LIB_PATH = os.path.abspath(os.path.join(BASE_DIR, ".venv/lib/python3.13/site-packages/ursa_bbs_signatures/libbbs.dylib"))
+LIB_PATH = os.path.abspath(os.path.join(BASE_DIR, "ffi-bbs-signatures/target/release/libbbs.dylib"))
+
 
 print(f"Trying to load libbbs from: {LIB_PATH}")
 
