@@ -3,13 +3,14 @@ from bbs.create_bbs_proof import create_bbs_selective_proof, verify_bbs_proof
 from zk.generate_proof import compile_circuit, generate_zk_proof, verify_zk_proof
 from zk.trusted_setup import trusted_setup
 from get_inputs import collect_user_inputs
+import base64, requests
 
 
 
 attributes = collect_user_inputs()
-revealed_fields = ["expiry_year","expiry_month", "commitment"]
+revealed_fields = ["expiry_year","expiry_month", "pk_bind", "commitment"]
 
-signature, keypair, tree, serial, issuer_id, all_keys = issue_credentials(attributes)
+signature, keypair, tree, serial, issuer_id, all_keys, signing_key, pk_bind_bytes = issue_credentials(attributes)
 
 is_signature_valid = verify_attributes(attributes, signature, keypair, tree, all_keys)
 check_signature = 1 if is_signature_valid else 0
@@ -25,7 +26,8 @@ bbs_proof, revealed_attrs_bytes, bbs_pub, nonce, merkle_proof, serial, issuer_id
     tree=tree,
     serial=serial,
     issuer_id=issuer_id,
-    all_keys=all_keys
+    all_keys=all_keys,
+    pk_bind_bytes=pk_bind_bytes
 )
 
 pathElements, pathIndices = merkle_proof
@@ -51,14 +53,33 @@ proof_files = generate_zk_proof(
 print("Generated proof files:")
 print(proof_files)
 
-bbs_validate = verify_bbs_proof(
-    bbs_proof=bbs_proof,
-    revealed_attrs=revealed_attrs_bytes,
-    public_key=bbs_pub,
-    nonce=nonce,
-    message_count=len(attributes) + 1  # +1 for commitment
-)
-
 
 verify_zk_proof()
+
+
+
+def b64(b): 
+    return base64.b64encode(b).decode()
+
+revealed_ordered = [
+    {"name": "expiry_year",  "value": str(attributes["expiry_year"]), "encoding": "utf8"},
+    {"name": "expiry_month", "value": str(attributes["expiry_month"]), "encoding": "utf8"},
+    {"name": "pk_bind",      "value": b64(pk_bind_bytes),             "encoding": "base64"},
+    {"name": "commitment",   "value": b64(revealed_attrs_bytes["commitment"]), "encoding": "base64"},
+]
+
+payload = {
+    "bbs_public_key_b64": b64(bbs_pub),
+    "bbs_proof": b64(bbs_proof),
+    "bbs_nonce": b64(nonce),
+    "message_count": len(attributes) + 2,
+    "revealed": revealed_ordered,
+    "plonk_proof": b64(open("proof.json","rb").read()),
+    "plonk_public": b64(open("public.json","rb").read()),
+    "merkle_root_hex": hex(tree.get_root())[2:],
+    "epoch": 1
+}
+
+r = requests.post("http://127.0.0.1:5000/api/v1/verify", json=payload, timeout=30)
+print("Server response:", r.status_code, r.json())
 
