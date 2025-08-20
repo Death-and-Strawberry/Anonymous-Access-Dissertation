@@ -1,6 +1,7 @@
 from ursa_bbs_signatures import BlsKeyPair, sign, SignRequest, verify, VerifyRequest, BbsKey
 from merkle import poseidon_hash, MerkleTree, poseidon_hash_two, FIELD_ORDER
 import os
+from nacl import signing
 
 def issue_credentials(attributes: dict, issuer_id: int = 42):
     """
@@ -9,6 +10,12 @@ def issue_credentials(attributes: dict, issuer_id: int = 42):
     Returns:
       signature, keypair, tree, serial (int), issuer_id (int), all_keys (list)
     """
+
+    #Generate holder binding keypair for each credential (for replay attack resistance as proof is menat to made once and unlinkable)
+    bind_signing_key = signing.SigningKey.generate()
+    bind_verify_key = bind_signing_key.verify_key
+    pk_bind_bytes = bytes(bind_verify_key)
+
 
     # deterministic ordering of attributes, as ordering inconsistencies cause issues
     all_keys = list(attributes.keys())
@@ -35,6 +42,9 @@ def issue_credentials(attributes: dict, issuer_id: int = 42):
     for k in all_keys:
         messages_bytes.append(str(attributes[k]).encode()) 
 
+    #Add the pk_bind to the list of attributes
+    messages_bytes.append(pk_bind_bytes)
+
     # commitment as 32-byte big-endian for BBS+
     commitment_bytes = commitment.to_bytes(32, "big")
     messages_bytes.append(commitment_bytes)
@@ -44,7 +54,7 @@ def issue_credentials(attributes: dict, issuer_id: int = 42):
     request = SignRequest(messages=messages_bytes, key_pair=keypair)
     signature = sign(request)
 
-    return signature, keypair, tree, serial, issuer_id, all_keys
+    return signature, keypair, tree, serial, issuer_id, all_keys, bind_signing_key, pk_bind_bytes
 
 
 def verify_attributes(attributes: dict, signature, keypair, tree: MerkleTree, all_keys):

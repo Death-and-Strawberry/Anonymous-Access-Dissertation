@@ -53,7 +53,8 @@ def bls_to_bbs_key_via_ffi(bls_pub_bytes: bytes, message_count: int) -> bytes:
     return bytes(bytearray(out_buf.data[:out_buf.len]))
 
 
-def create_bbs_selective_proof(signature, keypair, attributes: dict, revealed_fields: list, tree: MerkleTree, serial: int, issuer_id: int, all_keys: list):
+def create_bbs_selective_proof(signature, keypair, attributes: dict, revealed_fields: list,
+    tree: MerkleTree, serial: int, issuer_id: int, all_keys: list, pk_bind_bytes: bytes):
     """
     A function to create a proof of only selected values (selective disclosure) using the BBS+ library 
     that has been imported from ffi-bbs-signatures.
@@ -79,9 +80,13 @@ def create_bbs_selective_proof(signature, keypair, attributes: dict, revealed_fi
         mtype = ProofMessageType.Revealed if k in revealed_fields else ProofMessageType.HiddenProofSpecificBlinding
         messages.append(ProofMessage(raw, mtype))
 
+    #pk_binds_bytes signing attributes as a revealed field
+    messages.append(ProofMessage(pk_bind_bytes, ProofMessageType.Revealed))
+    revealed_fields.append("pk_bind")
+
     # append commitment as final message (same position used when signing)
-    commit_type = ProofMessageType.Revealed if "commitment" in revealed_fields else ProofMessageType.HiddenProofSpecificBlinding
-    messages.append(ProofMessage(commitment_bytes, commit_type))
+    messages.append(ProofMessage(commitment_bytes, ProofMessageType.Revealed))
+    revealed_fields.append("commitment")
 
     nonce = os.urandom(16)
     message_count = len(messages)
@@ -103,6 +108,8 @@ def create_bbs_selective_proof(signature, keypair, attributes: dict, revealed_fi
     for k in revealed_fields:
         if k == "commitment":
             revealed_attrs_bytes["commitment"] = commitment_bytes
+        elif k == "pk_bind":
+            revealed_attrs_bytes["pk_bind"] = pk_bind_bytes
         else:
             revealed_attrs_bytes[k] = str(attributes[k]).encode()
 
@@ -119,26 +126,3 @@ def create_bbs_selective_proof(signature, keypair, attributes: dict, revealed_fi
 
     return bbs_proof, revealed_attrs_bytes, bbs_pub, nonce, merkle_proof, serial, issuer_id, leaf_index
 
-
-def verify_bbs_proof(bbs_proof, revealed_attrs: dict, public_key: bytes, nonce: bytes, message_count: int) -> bool:
-    """
-    Verify BBS+ selective disclosure proof.
-    revealed_attrs values are expected to be bytes (exact bytes used when creating the proof).
-    """
-
-    # Accept bytes directly or encode strings
-    messages = []
-    for v in revealed_attrs.values():
-        if isinstance(v, bytes):
-            messages.append(v)
-        else:
-            messages.append(str(v).encode())
-
-    bbs_key = BbsKey(public_key, message_count)
-    request = VerifyProofRequest(
-        proof=bbs_proof,
-        public_key=bbs_key,
-        messages=messages,
-        nonce=nonce
-    )
-    return verify_proof(request)

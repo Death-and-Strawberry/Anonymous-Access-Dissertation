@@ -1,9 +1,28 @@
 import ctypes
-import os
+import os,sys
 
 #path to compiled shared library
+
+platform = sys.platform
+dynamiclib = ""
+print(platform)
+
+if platform == "darwin":
+    dynamiclib = "libbbs.dylib"
+elif platform == "linux" or "linux2":
+    dynamiclib += "libbbs.so"
+elif platform == "win32" or "cygwin" or "msys":
+    dynamiclib += "libbbs.dll"
+else:
+    print(f"""Please check the extension of your dynamic libraries based on your os:{platform} and append the
+           value of {dynamiclib} to have the correct extension, alternatively please check within the ffi-bbs-signatures/target/release
+            for the extension of the of the libbbs file.""")
+    if dynamiclib == "":
+        exit
+
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
-LIB_PATH = os.path.abspath(os.path.join(BASE_DIR, "ffi-bbs-signatures/target/release/libbbs.dylib"))
+LIB_PATH = os.path.abspath(os.path.join(BASE_DIR, f"ffi-bbs-signatures/target/release/{dynamiclib}"))
 
 
 print(f"Trying to load libbbs from: {LIB_PATH}")
