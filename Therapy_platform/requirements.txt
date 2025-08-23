@@ -1,0 +1,11 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic>=2.0
+pydantic-settings>=2.0
+requests[socks]==2.31.0
+PySocks==1.7.1
+stem==1.8.2
+python-dotenv==1.0.0
+aiosqlite==0.19.0
+slowapi==0.1.9
+ursa_bbs_signatures=1.0.2
