@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Secure Login via Proof</title>
+    <!-- Library for signature verifcation within the browser (sk is never sent to the server)-->
+    <script src="/static/js/nacl.min.js"></script>
+    <script src="/static/js/nacl-util.min.js"></script>
+    
+</head>
+<body>
+<h1>Secure Login with Pseudo-Identity Proof</h1>
+
+<div id="step1">
+    <h3>Step 1: Select your proof file</h3>
+    <input type="file" id="proofFile" accept=".json"><br><br>
+    <button id="loadProofBtn">Load Proof</button>
+</div>
+
+<div id="step2" style="display:none;">
+    <h3>Step 2: Sign Authentication Challenge</h3>
+    <p>A challenge has been created. Please enter your secret binding key to sign it.</p>
+    <textarea id="challengeDisplay" readonly rows="3" cols="80"></textarea><br><br>
+    <label>Secret Binding Key (base64):</label><br>
+    <input type="text" id="skBind" placeholder="Paste your sk_bind here"><br><br>
+    <button id="signBtn">Sign Challenge</button>
+</div>
+
+<div id="step3" style="display:none;">
+    <h3>Step 3: Complete Login</h3>
+    <textarea id="challengeSignature" rows="3" cols="80" readonly></textarea><br><br>
+    <button id="loginBtn">Submit Login</button>
+</div>
+
+<script>
+let proofData = null;
+let challengeData = null;
+let signatureB64 = null;
+
+async function loadProof() {
+    const fileInput = document.getElementById('proofFile');
+    if (!fileInput.files.length) {
+        alert("Please select a proof file first");
+        return;
+    }
+    const text = await fileInput.files[0].text();
+    proofData = JSON.parse(text);
+
+    // Extract pk_bind
+    const pkBindItem = proofData.revealed.find(item => item.name === "pk_bind");
+    if (!pkBindItem) {
+        alert("No pk_bind found in proof file");
+        return;
+    }
+
+    // Request challenge from server
+    const response = await fetch("/auth/challenge", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({pk_bind_key: pkBindItem.value})
+    });
+
+    if (response.ok) {
+        challengeData = await response.json();
+        document.getElementById('challengeDisplay').value =
+            `Challenge ID: ${challengeData.challenge_id}\nChallenge: ${challengeData.challenge}\nExpires: ${challengeData.expires_at}`;
+
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+    } else {
+        const error = await response.json();
+        alert("Challenge creation failed: " + error.error);
+    }
+}
+
+function signChallenge() {
+    const skBindB64 = document.getElementById('skBind').value.trim();
+    if (!skBindB64) {
+        alert("Enter your secret binding key.");
+        return;
+    }
+
+    try {
+        // 1) Decode user-provided secret
+        let sk = nacl.util.decodeBase64(skBindB64); // Uint8Array
+
+        // 2) Accept 32-byte seed OR 64-byte secret key
+        if (sk.length === 32) {
+            // Expand seed -> full secret key
+            const kp = nacl.sign.keyPair.fromSeed(sk);
+            sk = kp.secretKey; // 64 bytes
+        } else if (sk.length !== 64) {
+            throw new Error("Secret must be 32-byte seed or 64-byte secret key (base64).");
+        }
+
+        // 3) Optional safety check: public key matches pk_bind from proof
+        const pkBindItem = proofData.revealed.find(item => item.name === "pk_bind");
+        const pkFromProof = nacl.util.decodeBase64(pkBindItem.value);           // 32 bytes
+        const pkFromSk = sk.slice(32);                                          // last 32 bytes of 64-byte secret
+        if (pkFromSk.length !== 32 || pkFromProof.length !== 32 ||
+            !pkFromSk.every((v, i) => v === pkFromProof[i])) {
+            throw new Error("Provided secret key does not match pk_bind in the proof file.");
+        }
+
+        // 4) Sign the server’s challenge (base64 -> bytes -> detached signature)
+        const challengeBytes = nacl.util.decodeBase64(challengeData.challenge);
+        const sig = nacl.sign.detached(challengeBytes, sk);                     // 64-byte signature
+        signatureB64 = nacl.util.encodeBase64(sig);
+
+        // 5) Move to Step 3
+        document.getElementById('challengeSignature').value = signatureB64;
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step3').style.display = 'block';
+    } catch (err) {
+        alert("Failed to sign challenge: " + err.message);
+        console.error(err);
+    }
+}
+
+async function completeLogin() {
+    if (!signatureB64) {
+        alert("No signature available.");
+        return;
+    }
+
+    const loginPayload = {
+        ...proofData,
+        challenge_id: challengeData.challenge_id,
+        challenge_signature: signatureB64
+    };
+
+    try {
+        const response = await fetch("/auth/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(loginPayload)
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            alert("Login successful!");
+            window.location.href = "/dashboard";
+        } else {
+            alert("Login failed: " + (result.error || "Unknown error"));
+        }
+    } catch (err) {
+        alert("Error submitting login: " + err);
+    }
+}
+
+document.getElementById("loadProofBtn").addEventListener("click", loadProof);
+document.getElementById("signBtn").addEventListener("click", signChallenge);
+document.getElementById("loginBtn").addEventListener("click", completeLogin);
+</script>
+</body>
+</html>

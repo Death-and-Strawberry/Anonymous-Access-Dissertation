@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .info-card { background: #f5f5f5; padding: 20px; margin: 10px 0; border-radius: 5px; }
+        .logout-btn { background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; }
+        .status { color: #28a745; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Welcome to your Anonymous Therapy Dashboard</h1>
+    
+    <div class="info-card">
+        <h3>Your Pseudo Identity</h3>
+        <p><strong>Pseudo ID:</strong> {{ pseudo_id }}</p>
+        <p><strong>Account Created:</strong> {{ created_at }}</p>
+        <p><strong>Last Seen:</strong> {{ last_seen }}</p>
+        <p><strong>Credential Status:</strong> 
+            <span class="status">{{ has_credentials and "✓ Verified" or "⚠ Not Verified" }}</span>
+        </p>
+        <p><strong>Merkle Root:</strong> {{ merkle_root }}</p>
+    </div>
+    
+    <div class="info-card">
+        <h3>Privacy Notice</h3>
+        <p>This platform stores no personally identifiable information (PII). 
+           Your identity is represented only by cryptographic commitments and binding keys.</p>
+    </div>
+    
+    <div style="margin-top: 30px;">
+        <a href="/auth/logout" class="logout-btn">Logout</a>
+    </div>
+</body>
+</html>
