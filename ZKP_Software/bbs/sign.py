@@ -2,6 +2,7 @@ from ursa_bbs_signatures import BlsKeyPair, sign, SignRequest, verify, VerifyReq
 from merkle import poseidon_hash, MerkleTree, poseidon_hash_two, FIELD_ORDER
 import os
 from nacl import signing
+import base64
 
 def issue_credentials(attributes: dict, issuer_id: int = 42):
     """

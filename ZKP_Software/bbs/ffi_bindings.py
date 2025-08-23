@@ -5,7 +5,6 @@ import os,sys
 
 platform = sys.platform
 dynamiclib = ""
-print(platform)
 
 if platform == "darwin":
     dynamiclib = "libbbs.dylib"
@@ -23,9 +22,6 @@ else:
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
 LIB_PATH = os.path.abspath(os.path.join(BASE_DIR, f"ffi-bbs-signatures/target/release/{dynamiclib}"))
-
-
-print(f"Trying to load libbbs from: {LIB_PATH}")
 
 lib = ctypes.CDLL(LIB_PATH)
 
